@@ -1,5 +1,9 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { Button } from "#/components/ui/button";
+import { Input } from "#/components/ui/input";
+import { Label } from "#/components/ui/label";
+import { Textarea } from "#/components/ui/textarea";
 import { createProject } from "#/lib/api";
 import { isLoggedIn } from "#/lib/auth";
 
@@ -58,118 +62,77 @@ function NewProjectPage() {
 				)}
 
 				<form onSubmit={handleSubmit} className="space-y-4">
-					<div>
-						<label className="block text-sm font-medium mb-1">Name</label>
-						<input
-							name="name"
-							required
-							className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
-						/>
+					<div className="space-y-2">
+						<Label htmlFor="name">Name</Label>
+						<Input id="name" name="name" required />
 					</div>
-					<div>
-						<label className="block text-sm font-medium mb-1">
-							Description
-						</label>
-						<input
-							name="description"
-							required
-							className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
-						/>
+					<div className="space-y-2">
+						<Label htmlFor="description">Description</Label>
+						<Input id="description" name="description" required />
 					</div>
-					<div>
-						<label className="block text-sm font-medium mb-1">
-							Full Description (Markdown)
-						</label>
-						<textarea
-							name="fullDesc"
-							rows={4}
-							className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
-						/>
+					<div className="space-y-2">
+						<Label htmlFor="fullDesc">Full Description (Markdown)</Label>
+						<Textarea id="fullDesc" name="fullDesc" rows={4} />
 					</div>
 					<div className="grid grid-cols-2 gap-4">
-						<div>
-							<label className="block text-sm font-medium mb-1">
-								Icon (FontAwesome)
-							</label>
-							<input
-								name="icon"
-								placeholder="solid fa-flag"
-								className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
-							/>
+						<div className="space-y-2">
+							<Label htmlFor="icon">Icon (FontAwesome)</Label>
+							<Input id="icon" name="icon" placeholder="solid fa-flag" />
 						</div>
-						<div>
-							<label className="block text-sm font-medium mb-1">URL</label>
-							<input
-								name="url"
-								placeholder="https://example.com"
-								className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
-							/>
+						<div className="space-y-2">
+							<Label htmlFor="url">URL</Label>
+							<Input id="url" name="url" placeholder="https://example.com" />
 						</div>
 					</div>
-					<div>
-						<label className="block text-sm font-medium mb-1">
-							Uptime Slug
-						</label>
-						<input
-							name="uptime"
-							className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
-						/>
+					<div className="space-y-2">
+						<Label htmlFor="uptime">Uptime Slug</Label>
+						<Input id="uptime" name="uptime" />
 					</div>
 					<div className="grid grid-cols-3 gap-4">
-						<div>
-							<label className="block text-sm font-medium mb-1">
-								Launch Year
-							</label>
-							<input
+						<div className="space-y-2">
+							<Label htmlFor="launchYear">Launch Year</Label>
+							<Input
+								id="launchYear"
 								name="launchYear"
 								type="number"
 								defaultValue={new Date().getFullYear()}
-								className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
 							/>
 						</div>
-						<div>
-							<label className="block text-sm font-medium mb-1">
-								Launch Month
-							</label>
-							<input
+						<div className="space-y-2">
+							<Label htmlFor="launchMonth">Launch Month</Label>
+							<Input
+								id="launchMonth"
 								name="launchMonth"
 								type="number"
 								min={1}
 								max={12}
 								defaultValue={1}
-								className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
 							/>
 						</div>
-						<div>
-							<label className="block text-sm font-medium mb-1">
-								Launch Day
-							</label>
-							<input
+						<div className="space-y-2">
+							<Label htmlFor="launchDay">Launch Day</Label>
+							<Input
+								id="launchDay"
 								name="launchDay"
 								type="number"
 								min={1}
 								max={31}
 								defaultValue={1}
-								className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
 							/>
 						</div>
 					</div>
 
 					<div className="flex gap-3 pt-4">
-						<button
-							type="submit"
-							disabled={saving}
-							className="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white font-medium hover:bg-brand-700 transition-colors disabled:opacity-50"
-						>
+						<Button type="submit" disabled={saving}>
 							{saving ? "Creating..." : "Create Project"}
-						</button>
-						<button
+						</Button>
+						<Button
 							type="button"
+							variant="outline"
 							onClick={() => navigate({ to: "/" })}
-							className="rounded-lg border border-(--color-border) px-4 py-2 text-sm font-medium hover:bg-(--color-surface-alt) transition-colors"
 						>
 							Cancel
-						</button>
+						</Button>
 					</div>
 				</form>
 			</div>

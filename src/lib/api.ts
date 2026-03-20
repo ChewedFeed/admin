@@ -48,10 +48,7 @@ export type Project = {
 	roadmap?: RoadmapItem[];
 };
 
-async function apiFetch<T>(
-	path: string,
-	options?: RequestInit,
-): Promise<T> {
+async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 	const headers: Record<string, string> = {
 		"Content-Type": "application/json",
 	};
@@ -124,10 +121,7 @@ export function createLink(
 	});
 }
 
-export function deleteLink(
-	serviceName: string,
-	linkId: number,
-): Promise<void> {
+export function deleteLink(serviceName: string, linkId: number): Promise<void> {
 	return apiFetch(`/service/${serviceName}/links/${linkId}`, {
 		method: "DELETE",
 	});
