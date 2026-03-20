@@ -1,0 +1,53 @@
+{
+  "name": "chewedfeed-admin",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#/*": "./src/*"
+  },
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "tests": "bun run test && bun run check && bun run lint && bun run format && bun run build && bun run typecheck",
+    "format": "biome format",
+    "lint": "biome lint",
+    "check": "biome check",
+    "start": "bun run server.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@flags-gg/react-library": "latest",
+    "@t3-oss/env-core": "^0.13.10",
+    "@tailwindcss/vite": "^4.1.18",
+    "@tanstack/react-devtools": "latest",
+    "@tanstack/react-router": "latest",
+    "@tanstack/react-router-devtools": "latest",
+    "@tanstack/react-router-ssr-query": "latest",
+    "@tanstack/react-start": "latest",
+    "@tanstack/router-plugin": "^1.132.0",
+    "bugfixes": "2.2.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.577.0",
+    "nitro": "npm:nitro-nightly@latest",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "srvx": "^0.11.12",
+    "tailwind-merge": "^3.0.2",
+    "tailwindcss": "^4.1.18",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.5",
+    "@tanstack/devtools-vite": "latest",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.1.4",
+    "typescript": "^5.7.2",
+    "vite": "^7.3.1",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.0.5"
+  }
+}
