@@ -112,7 +112,8 @@ function EditProjectPage() {
 
 	async function handleAddLink(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
-		const form = new FormData(e.currentTarget);
+		const formElement = e.currentTarget;
+		const form = new FormData(formElement);
 		try {
 			const link = await createLink(params.projectName, {
 				type: form.get("linkType") as string,
@@ -120,7 +121,7 @@ function EditProjectPage() {
 				label: form.get("linkLabel") as string,
 			});
 			setProject((p) => ({ ...p, links: [...(p.links ?? []), link] }));
-			e.currentTarget.reset();
+			formElement.reset();
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Failed to add link");
 		}
@@ -140,7 +141,8 @@ function EditProjectPage() {
 
 	async function handleAddMilestone(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
-		const form = new FormData(e.currentTarget);
+		const formElement = e.currentTarget;
+		const form = new FormData(formElement);
 		const status = (form.get("status") as string) || "planned";
 
 		try {
@@ -160,7 +162,7 @@ function EditProjectPage() {
 				...p,
 				milestones: [...(p.milestones ?? []), item],
 			}));
-			e.currentTarget.reset();
+			formElement.reset();
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Failed to add milestone");
 		}
