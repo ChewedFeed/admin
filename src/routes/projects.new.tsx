@@ -1,8 +1,14 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { createProject } from "#/lib/api";
+import { isLoggedIn } from "#/lib/auth";
 
 export const Route = createFileRoute("/projects/new")({
+	beforeLoad: () => {
+		if (typeof window !== "undefined" && !isLoggedIn()) {
+			throw redirect({ to: "/login" });
+		}
+	},
 	component: NewProjectPage,
 });
 

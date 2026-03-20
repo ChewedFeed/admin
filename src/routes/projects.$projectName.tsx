@@ -1,5 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { isLoggedIn } from "#/lib/auth";
 import {
 	fetchProject,
 	updateProject,
@@ -17,6 +18,11 @@ import {
 import type { Project, ProjectLink, RoadmapItem, LaunchTask } from "#/lib/api";
 
 export const Route = createFileRoute("/projects/$projectName")({
+	beforeLoad: () => {
+		if (typeof window !== "undefined" && !isLoggedIn()) {
+			throw redirect({ to: "/login" });
+		}
+	},
 	loader: async ({ params }) => {
 		const project = await fetchProject(params.projectName);
 		let tasks: LaunchTask[] = [];
