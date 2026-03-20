@@ -86,9 +86,7 @@ function ProjectsListPage() {
 										<td className="px-4 py-3 text-(--color-text-muted) max-w-xs truncate">
 											{project.description}
 										</td>
-										<td className="px-4 py-3">
-											{renderStatus(project)}
-										</td>
+										<td className="px-4 py-3">{renderStatus(project)}</td>
 										<td className="px-4 py-3">{project.progress}%</td>
 										<td className="px-4 py-3 text-(--color-text-muted)">
 											{project.links?.length ?? 0}

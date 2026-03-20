@@ -2,7 +2,6 @@ import { FlagsProvider } from "@flags-gg/react-library";
 import {
 	createRootRoute,
 	HeadContent,
-	Outlet,
 	Scripts,
 	useRouterState,
 } from "@tanstack/react-router";
