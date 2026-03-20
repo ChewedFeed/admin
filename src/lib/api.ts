@@ -48,17 +48,32 @@ export type Project = {
 	roadmap?: RoadmapItem[];
 };
 
-async function apiFetch<T>(
-	path: string,
-	options?: RequestInit,
-): Promise<T> {
+async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+	const headers: Record<string, string> = {
+		"Content-Type": "application/json",
+	};
+
+	if (typeof window !== "undefined") {
+		const token = localStorage.getItem("chewedfeed_admin_token");
+		if (token) {
+			headers.Authorization = `Bearer ${token}`;
+		}
+	}
+
 	const res = await fetch(`${CMS_API_URL}${path}`, {
 		headers: {
-			"Content-Type": "application/json",
+			...headers,
 			...options?.headers,
 		},
 		...options,
 	});
+
+	if (res.status === 401 && typeof window !== "undefined") {
+		localStorage.removeItem("chewedfeed_admin_token");
+		window.location.href = "/login";
+		throw new Error("Unauthorized");
+	}
+
 	if (!res.ok) {
 		throw new Error(`API error ${res.status}: ${res.statusText}`);
 	}
@@ -106,10 +121,7 @@ export function createLink(
 	});
 }
 
-export function deleteLink(
-	serviceName: string,
-	linkId: number,
-): Promise<void> {
+export function deleteLink(serviceName: string, linkId: number): Promise<void> {
 	return apiFetch(`/service/${serviceName}/links/${linkId}`, {
 		method: "DELETE",
 	});

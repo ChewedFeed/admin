@@ -10,7 +10,11 @@ function RouteErrorComponent({ error: err }: { error: unknown }) {
 	useEffect(() => {
 		logError("unhandled route error", err);
 	}, [err]);
-	return <div className="p-8 text-center text-(--color-danger)">Something went wrong</div>;
+	return (
+		<div className="p-8 text-center text-(--color-danger)">
+			Something went wrong
+		</div>
+	);
 }
 
 export const Route = createRootRoute({
@@ -21,9 +25,7 @@ export const Route = createRootRoute({
 			{ name: "viewport", content: "width=device-width, initial-scale=1" },
 			{ title: "ChewedFeed Admin" },
 		],
-		links: [
-			{ rel: "stylesheet", href: appCss },
-		],
+		links: [{ rel: "stylesheet", href: appCss }],
 	}),
 	shellComponent: RootDocument,
 });

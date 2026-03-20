@@ -1,7 +1,13 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { fetchProjects } from "#/lib/api";
+import { isLoggedIn } from "#/lib/auth";
 
 export const Route = createFileRoute("/")({
+	beforeLoad: () => {
+		if (typeof window !== "undefined" && !isLoggedIn()) {
+			throw redirect({ to: "/login" });
+		}
+	},
 	loader: async () => {
 		const projects = await fetchProjects();
 		return { projects };
@@ -39,9 +45,9 @@ function ProjectsListPage() {
 						</thead>
 						<tbody>
 							{projects.map((project) => {
-								const searchName = project.name
-									.toLowerCase()
-									.replace(/\s+/g, "-");
+								const searchName =
+									project.searchName ??
+									project.name.toLowerCase().replace(/\s+/g, "-");
 								return (
 									<tr
 										key={project.name}

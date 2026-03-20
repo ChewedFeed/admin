@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { Project, ProjectLink, RoadmapItem, LaunchTask } from "./api";
+import type { LaunchTask, Project, ProjectLink, RoadmapItem } from "./api";
 
 describe("Admin API types", () => {
 	test("Project with all fields", () => {

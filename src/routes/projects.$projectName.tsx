@@ -1,22 +1,33 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { Check } from "lucide-react";
 import { useState } from "react";
+import { Button } from "#/components/ui/button";
+import { Input } from "#/components/ui/input";
+import { Label } from "#/components/ui/label";
+import { Textarea } from "#/components/ui/textarea";
+import type { LaunchTask, RoadmapItem } from "#/lib/api";
 import {
-	fetchProject,
-	updateProject,
-	deleteProject,
+	createLaunchTask,
 	createLink,
-	deleteLink,
 	createRoadmapItem,
-	updateRoadmapItem,
+	deleteLaunchTask,
+	deleteLink,
+	deleteProject,
 	deleteRoadmapItem,
 	fetchLaunchTasks,
-	createLaunchTask,
+	fetchProject,
 	updateLaunchTask,
-	deleteLaunchTask,
+	updateProject,
+	updateRoadmapItem,
 } from "#/lib/api";
-import type { Project, ProjectLink, RoadmapItem, LaunchTask } from "#/lib/api";
+import { isLoggedIn } from "#/lib/auth";
 
 export const Route = createFileRoute("/projects/$projectName")({
+	beforeLoad: () => {
+		if (typeof window !== "undefined" && !isLoggedIn()) {
+			throw redirect({ to: "/login" });
+		}
+	},
 	loader: async ({ params }) => {
 		const project = await fetchProject(params.projectName);
 		let tasks: LaunchTask[] = [];
@@ -66,9 +77,7 @@ function EditProjectPage() {
 			setProject(updated);
 			setSuccess("Project saved");
 		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : "Failed to save project",
-			);
+			setError(err instanceof Error ? err.message : "Failed to save project");
 		} finally {
 			setSaving(false);
 		}
@@ -80,9 +89,7 @@ function EditProjectPage() {
 			await deleteProject(params.projectName);
 			navigate({ to: "/" });
 		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : "Failed to delete project",
-			);
+			setError(err instanceof Error ? err.message : "Failed to delete project");
 		}
 	}
 
@@ -110,9 +117,7 @@ function EditProjectPage() {
 				links: p.links?.filter((l) => l.id !== linkId),
 			}));
 		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : "Failed to delete link",
-			);
+			setError(err instanceof Error ? err.message : "Failed to delete link");
 		}
 	}
 
@@ -124,7 +129,7 @@ function EditProjectPage() {
 				name: form.get("itemName") as string,
 				targetDate: (form.get("itemTargetDate") as string) || undefined,
 				completed: false,
-				sortOrder: (project.roadmap?.length ?? 0),
+				sortOrder: project.roadmap?.length ?? 0,
 			});
 			setProject((p) => ({
 				...p,
@@ -141,16 +146,12 @@ function EditProjectPage() {
 	async function handleToggleRoadmapItem(item: RoadmapItem) {
 		if (!item.id) return;
 		try {
-			const updated = await updateRoadmapItem(
-				params.projectName,
-				item.id,
-				{ completed: !item.completed },
-			);
+			const updated = await updateRoadmapItem(params.projectName, item.id, {
+				completed: !item.completed,
+			});
 			setProject((p) => ({
 				...p,
-				roadmap: p.roadmap?.map((r) =>
-					r.id === item.id ? updated : r,
-				),
+				roadmap: p.roadmap?.map((r) => (r.id === item.id ? updated : r)),
 			}));
 		} catch (err) {
 			setError(
@@ -168,9 +169,7 @@ function EditProjectPage() {
 			}));
 		} catch (err) {
 			setError(
-				err instanceof Error
-					? err.message
-					: "Failed to delete roadmap item",
+				err instanceof Error ? err.message : "Failed to delete roadmap item",
 			);
 		}
 	}
@@ -182,25 +181,19 @@ function EditProjectPage() {
 			});
 			setTasks((t) => [...t, task]);
 		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : "Failed to add task",
-			);
+			setError(err instanceof Error ? err.message : "Failed to add task");
 		}
 	}
 
 	async function handleToggleTask(task: LaunchTask) {
 		if (!task.id) return;
 		try {
-			const updated = await updateLaunchTask(
-				params.projectName,
-				task.id,
-				{ completed: !task.completed },
-			);
+			const updated = await updateLaunchTask(params.projectName, task.id, {
+				completed: !task.completed,
+			});
 			setTasks((t) => t.map((tt) => (tt.id === task.id ? updated : tt)));
 		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : "Failed to update task",
-			);
+			setError(err instanceof Error ? err.message : "Failed to update task");
 		}
 	}
 
@@ -209,10 +202,12 @@ function EditProjectPage() {
 			await deleteLaunchTask(params.projectName, taskId);
 			setTasks((t) => t.filter((tt) => tt.id !== taskId));
 		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : "Failed to delete task",
-			);
+			setError(err instanceof Error ? err.message : "Failed to delete task");
 		}
+	}
+
+	function CheckIcon() {
+		return <Check className="w-3 h-3 text-white" aria-label="Completed" />;
 	}
 
 	return (
@@ -220,13 +215,9 @@ function EditProjectPage() {
 			<div className="page-wrap max-w-3xl">
 				<div className="flex items-center justify-between mb-6">
 					<h1 className="text-2xl font-bold">Edit: {project.name}</h1>
-					<button
-						type="button"
-						onClick={handleDelete}
-						className="rounded-lg border border-(--color-danger)/30 px-3 py-1.5 text-sm text-(--color-danger) hover:bg-(--color-danger)/10 transition-colors"
-					>
+					<Button variant="destructive" size="sm" onClick={handleDelete}>
 						Delete Project
-					</button>
+					</Button>
 				</div>
 
 				{error && (
@@ -245,110 +236,88 @@ function EditProjectPage() {
 					<h2 className="text-lg font-semibold mb-4">Details</h2>
 					<form onSubmit={handleSave} className="space-y-4">
 						<div className="grid grid-cols-2 gap-4">
-							<div>
-								<label className="block text-sm font-medium mb-1">Name</label>
-								<input
+							<div className="space-y-2">
+								<Label htmlFor="name">Name</Label>
+								<Input
+									id="name"
 									name="name"
 									defaultValue={project.name}
 									required
-									className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
 								/>
 							</div>
-							<div>
-								<label className="block text-sm font-medium mb-1">
-									Icon
-								</label>
-								<input
-									name="icon"
-									defaultValue={project.icon}
-									className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
-								/>
+							<div className="space-y-2">
+								<Label htmlFor="icon">Icon</Label>
+								<Input id="icon" name="icon" defaultValue={project.icon} />
 							</div>
 						</div>
-						<div>
-							<label className="block text-sm font-medium mb-1">
-								Description
-							</label>
-							<input
+						<div className="space-y-2">
+							<Label htmlFor="description">Description</Label>
+							<Input
+								id="description"
 								name="description"
 								defaultValue={project.description}
 								required
-								className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
 							/>
 						</div>
-						<div>
-							<label className="block text-sm font-medium mb-1">
-								Full Description
-							</label>
-							<textarea
+						<div className="space-y-2">
+							<Label htmlFor="fullDesc">Full Description</Label>
+							<Textarea
+								id="fullDesc"
 								name="fullDesc"
 								defaultValue={project.fullDesc}
 								rows={4}
-								className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
 							/>
 						</div>
 						<div className="grid grid-cols-2 gap-4">
-							<div>
-								<label className="block text-sm font-medium mb-1">URL</label>
-								<input
-									name="url"
-									defaultValue={project.url}
-									className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
-								/>
+							<div className="space-y-2">
+								<Label htmlFor="url">URL</Label>
+								<Input id="url" name="url" defaultValue={project.url} />
 							</div>
-							<div>
-								<label className="block text-sm font-medium mb-1">
-									Uptime Slug
-								</label>
-								<input
+							<div className="space-y-2">
+								<Label htmlFor="uptime">Uptime Slug</Label>
+								<Input
+									id="uptime"
 									name="uptime"
 									defaultValue={project.uptime}
-									className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
 								/>
 							</div>
 						</div>
 						<div className="grid grid-cols-3 gap-4">
-							<div>
-								<label className="block text-sm font-medium mb-1">Year</label>
-								<input
+							<div className="space-y-2">
+								<Label htmlFor="launchYear">Year</Label>
+								<Input
+									id="launchYear"
 									name="launchYear"
 									type="number"
 									defaultValue={project.launchDate.year}
-									className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
 								/>
 							</div>
-							<div>
-								<label className="block text-sm font-medium mb-1">
-									Month
-								</label>
-								<input
+							<div className="space-y-2">
+								<Label htmlFor="launchMonth">Month</Label>
+								<Input
+									id="launchMonth"
 									name="launchMonth"
 									type="number"
 									min={1}
 									max={12}
 									defaultValue={project.launchDate.month}
-									className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
 								/>
 							</div>
-							<div>
-								<label className="block text-sm font-medium mb-1">Day</label>
-								<input
+							<div className="space-y-2">
+								<Label htmlFor="launchDay">Day</Label>
+								<Input
+									id="launchDay"
 									name="launchDay"
 									type="number"
 									min={1}
 									max={31}
 									defaultValue={project.launchDate.day}
-									className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
 								/>
 							</div>
 						</div>
-						<button
-							type="submit"
-							disabled={saving}
-							className="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white font-medium hover:bg-brand-700 transition-colors disabled:opacity-50"
-						>
+						<Button type="submit" disabled={saving}>
 							{saving ? "Saving..." : "Save"}
-						</button>
+						</Button>
 					</form>
 				</section>
 
@@ -374,13 +343,14 @@ function EditProjectPage() {
 										)}
 									</div>
 									{link.id && (
-										<button
-											type="button"
+										<Button
+											variant="ghost"
+											size="sm"
+											className="text-(--color-danger)"
 											onClick={() => handleDeleteLink(link.id as number)}
-											className="text-xs text-(--color-danger) hover:underline"
 										>
 											Remove
-										</button>
+										</Button>
 									)}
 								</div>
 							))}
@@ -397,23 +367,9 @@ function EditProjectPage() {
 							<option value="landing">Landing</option>
 							<option value="docs">Docs</option>
 						</select>
-						<input
-							name="linkUrl"
-							required
-							placeholder="https://..."
-							className="flex-1 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
-						/>
-						<input
-							name="linkLabel"
-							placeholder="Label"
-							className="w-32 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
-						/>
-						<button
-							type="submit"
-							className="rounded-lg bg-brand-600 px-3 py-2 text-sm text-white font-medium hover:bg-brand-700 transition-colors"
-						>
-							Add
-						</button>
+						<Input name="linkUrl" required placeholder="https://..." />
+						<Input name="linkLabel" placeholder="Label" className="w-32" />
+						<Button type="submit">Add</Button>
 					</form>
 				</section>
 
@@ -436,21 +392,7 @@ function EditProjectPage() {
 												: "border-(--color-border)"
 										}`}
 									>
-										{item.completed && (
-											<svg
-												className="w-3 h-3 text-white"
-												fill="none"
-												viewBox="0 0 24 24"
-												stroke="currentColor"
-												strokeWidth={3}
-											>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													d="M5 13l4 4L19 7"
-												/>
-											</svg>
-										)}
+										{item.completed && <CheckIcon />}
 									</button>
 									<div className="flex-1">
 										<span
@@ -469,38 +411,28 @@ function EditProjectPage() {
 										)}
 									</div>
 									{item.id && (
-										<button
-											type="button"
-											onClick={() =>
-												handleDeleteRoadmapItem(item.id as number)
-											}
-											className="text-xs text-(--color-danger) hover:underline"
+										<Button
+											variant="ghost"
+											size="sm"
+											className="text-(--color-danger)"
+											onClick={() => handleDeleteRoadmapItem(item.id as number)}
 										>
 											Remove
-										</button>
+										</Button>
 									)}
 								</div>
 							))}
 						</div>
 					)}
 					<form onSubmit={handleAddRoadmapItem} className="flex gap-2">
-						<input
+						<Input
 							name="itemName"
 							required
 							placeholder="Feature name"
-							className="flex-1 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
+							className="flex-1"
 						/>
-						<input
-							name="itemTargetDate"
-							type="date"
-							className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
-						/>
-						<button
-							type="submit"
-							className="rounded-lg bg-brand-600 px-3 py-2 text-sm text-white font-medium hover:bg-brand-700 transition-colors"
-						>
-							Add
-						</button>
+						<Input name="itemTargetDate" type="date" />
+						<Button type="submit">Add</Button>
 					</form>
 				</section>
 
@@ -514,13 +446,9 @@ function EditProjectPage() {
 								complete)
 							</span>
 						</h2>
-						<button
-							type="button"
-							onClick={handleAddTask}
-							className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm text-white font-medium hover:bg-brand-700 transition-colors"
-						>
+						<Button size="sm" onClick={handleAddTask}>
 							Add Task
-						</button>
+						</Button>
 					</div>
 					{tasks.length > 0 && (
 						<div className="space-y-2">
@@ -538,21 +466,7 @@ function EditProjectPage() {
 												: "border-(--color-border)"
 										}`}
 									>
-										{task.completed && (
-											<svg
-												className="w-3 h-3 text-white"
-												fill="none"
-												viewBox="0 0 24 24"
-												stroke="currentColor"
-												strokeWidth={3}
-											>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													d="M5 13l4 4L19 7"
-												/>
-											</svg>
-										)}
+										{task.completed && <CheckIcon />}
 									</button>
 									<span
 										className={`flex-1 text-sm ${task.completed ? "line-through text-(--color-text-muted)" : ""}`}
@@ -560,13 +474,14 @@ function EditProjectPage() {
 										Task #{task.id}
 									</span>
 									{task.id && (
-										<button
-											type="button"
+										<Button
+											variant="ghost"
+											size="sm"
+											className="text-(--color-danger)"
 											onClick={() => handleDeleteTask(task.id as number)}
-											className="text-xs text-(--color-danger) hover:underline"
 										>
 											Remove
-										</button>
+										</Button>
 									)}
 								</div>
 							))}
