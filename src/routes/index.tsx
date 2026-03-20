@@ -18,6 +18,35 @@ export const Route = createFileRoute("/")({
 function ProjectsListPage() {
 	const { projects } = Route.useLoaderData();
 
+	function renderStatus(project: (typeof projects)[number]) {
+		switch (project.status) {
+			case "active":
+				return (
+					<span className="text-xs font-medium text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full">
+						Active
+					</span>
+				);
+			case "retired":
+				return (
+					<span className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+						Retired
+					</span>
+				);
+			case "dropped":
+				return (
+					<span className="text-xs font-medium text-rose-600 bg-rose-100 px-2 py-0.5 rounded-full">
+						Dropped
+					</span>
+				);
+			default:
+				return (
+					<span className="text-xs font-medium text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">
+						Planned
+					</span>
+				);
+		}
+	}
+
 	return (
 		<div className="py-8">
 			<div className="page-wrap">
@@ -58,15 +87,7 @@ function ProjectsListPage() {
 											{project.description}
 										</td>
 										<td className="px-4 py-3">
-											{project.launched ? (
-												<span className="text-xs font-medium text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full">
-													Live
-												</span>
-											) : (
-												<span className="text-xs font-medium text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">
-													In Progress
-												</span>
-											)}
+											{renderStatus(project)}
 										</td>
 										<td className="px-4 py-3">{project.progress}%</td>
 										<td className="px-4 py-3 text-(--color-text-muted)">

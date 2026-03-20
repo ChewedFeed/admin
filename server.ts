@@ -10,11 +10,13 @@ type ServerAppModule = {
 
 declare const Bun: {
 	serve(options: {
+		hostname?: string;
 		port: number;
 		fetch(request: Request): Response | Promise<Response>;
 	}): unknown;
 };
 
+const host = process.env.HOST || "0.0.0.0";
 const port = Number(process.env.PORT || 8080);
 const clientDir = join(import.meta.dirname, "dist", "client");
 const serverEntryUrl = new URL("./dist/server/server.js", import.meta.url).href;
@@ -105,6 +107,7 @@ function tryServeStatic(pathname: string): Response | null {
 }
 
 Bun.serve({
+	hostname: host,
 	port,
 	async fetch(request) {
 		const url = new URL(request.url);
@@ -125,5 +128,5 @@ Bun.serve({
 });
 
 info(
-	`Server running on http://localhost:${port} (bugfixes mode: ${getBugfixesMode()})`,
+	`Server running on http://${host}:${port} (bugfixes mode: ${getBugfixesMode()})`,
 );

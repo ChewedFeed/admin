@@ -33,6 +33,13 @@ const milestoneCategories = [
 	{ value: "other", label: "Other" },
 ];
 
+const projectStatuses = [
+	{ value: "planned", label: "Planned" },
+	{ value: "active", label: "Active" },
+	{ value: "retired", label: "Retired" },
+	{ value: "dropped", label: "Dropped" },
+];
+
 export const Route = createFileRoute("/projects/$projectName")({
 	beforeLoad: () => {
 		if (typeof window !== "undefined" && !isLoggedIn()) {
@@ -78,6 +85,7 @@ function EditProjectPage() {
 				name: form.get("name") as string,
 				description: form.get("description") as string,
 				fullDesc: form.get("fullDesc") as string,
+				status: form.get("status") as string,
 				icon: form.get("icon") as string,
 				url: form.get("url") as string,
 				uptime: form.get("uptime") as string,
@@ -261,6 +269,21 @@ function EditProjectPage() {
 								<Label htmlFor="icon">Icon</Label>
 								<Input id="icon" name="icon" defaultValue={project.icon} />
 							</div>
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="status">Project Status</Label>
+							<select
+								id="status"
+								name="status"
+								defaultValue={project.status || "planned"}
+								className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
+							>
+								{projectStatuses.map((status) => (
+									<option key={status.value} value={status.value}>
+										{status.label}
+									</option>
+								))}
+							</select>
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="description">Description</Label>
