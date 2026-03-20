@@ -45,9 +45,7 @@ function ProjectsListPage() {
 						</thead>
 						<tbody>
 							{projects.map((project) => {
-								const searchName = project.name
-									.toLowerCase()
-									.replace(/\s+/g, "-");
+								const searchName = project.searchName ?? project.name.toLowerCase().replace(/\s+/g, "-");
 								return (
 									<tr
 										key={project.name}
