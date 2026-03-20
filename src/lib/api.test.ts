@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { LaunchTask, Project, ProjectLink, RoadmapItem } from "./api";
+import type { Milestone, Project, ProjectLink } from "./api";
 
 describe("Admin API types", () => {
 	test("Project with all fields", () => {
@@ -21,15 +21,27 @@ describe("Admin API types", () => {
 				{ id: 2, type: "dashboard", url: "https://dashboard.flags.gg" },
 				{ id: 3, type: "docs", url: "https://docs.flags.gg" },
 			],
-			roadmap: [
-				{ id: 1, name: "Alpha", completed: true, sortOrder: 0 },
-				{ id: 2, name: "Beta", completed: false, sortOrder: 1 },
+			milestones: [
+				{
+					id: 1,
+					title: "Alpha",
+					category: "feature",
+					status: "completed",
+					sortOrder: 0,
+				},
+				{
+					id: 2,
+					title: "Beta",
+					category: "release",
+					status: "planned",
+					sortOrder: 1,
+				},
 			],
 		};
 
 		expect(project.id).toBe(1);
 		expect(project.links).toHaveLength(3);
-		expect(project.roadmap).toHaveLength(2);
+		expect(project.milestones).toHaveLength(2);
 	});
 
 	test("ProjectLink optional id for new links", () => {
@@ -48,25 +60,14 @@ describe("Admin API types", () => {
 		expect(existingLink.id).toBe(5);
 	});
 
-	test("RoadmapItem optional dates", () => {
-		const item: RoadmapItem = {
-			name: "Launch",
-			completed: false,
+	test("Milestone optional dates", () => {
+		const item: Milestone = {
+			title: "Launch",
+			category: "release",
+			status: "planned",
 			sortOrder: 0,
 		};
 		expect(item.targetDate).toBeUndefined();
-		expect(item.releaseDate).toBeUndefined();
-	});
-
-	test("LaunchTask toggle", () => {
-		const task: LaunchTask = {
-			id: 1,
-			serviceId: 1,
-			completed: false,
-		};
-		expect(task.completed).toBe(false);
-
-		const toggled: LaunchTask = { ...task, completed: !task.completed };
-		expect(toggled.completed).toBe(true);
+		expect(item.completedDate).toBeUndefined();
 	});
 });

@@ -10,12 +10,15 @@ export type ProjectLink = {
 	label?: string;
 };
 
-export type RoadmapItem = {
+export type Milestone = {
 	id?: number;
-	name: string;
+	serviceId?: number;
+	title: string;
+	description?: string;
+	category: string;
+	status: string;
 	targetDate?: string;
-	releaseDate?: string;
-	completed: boolean;
+	completedDate?: string;
 	sortOrder: number;
 };
 
@@ -23,12 +26,6 @@ export type LaunchDate = {
 	year: number;
 	month: number;
 	day: number;
-};
-
-export type LaunchTask = {
-	id?: number;
-	serviceId: number;
-	completed: boolean;
 };
 
 export type Project = {
@@ -45,7 +42,7 @@ export type Project = {
 	uptime: string;
 	launched: boolean;
 	links?: ProjectLink[];
-	roadmap?: RoadmapItem[];
+	milestones?: Milestone[];
 };
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
@@ -127,68 +124,37 @@ export function deleteLink(serviceName: string, linkId: number): Promise<void> {
 	});
 }
 
-// Roadmap
-export function createRoadmapItem(
+// Milestones
+export function fetchMilestones(serviceName: string): Promise<Milestone[]> {
+	return apiFetch(`/service/${serviceName}/milestones`);
+}
+
+export function createMilestone(
 	serviceName: string,
-	item: Partial<RoadmapItem>,
-): Promise<RoadmapItem> {
-	return apiFetch(`/service/${serviceName}/roadmap`, {
+	item: Partial<Milestone>,
+): Promise<Milestone> {
+	return apiFetch(`/service/${serviceName}/milestones`, {
 		method: "POST",
 		body: JSON.stringify(item),
 	});
 }
 
-export function updateRoadmapItem(
+export function updateMilestone(
 	serviceName: string,
 	itemId: number,
-	item: Partial<RoadmapItem>,
-): Promise<RoadmapItem> {
-	return apiFetch(`/service/${serviceName}/roadmap/${itemId}`, {
+	item: Partial<Milestone>,
+): Promise<Milestone> {
+	return apiFetch(`/service/${serviceName}/milestones/${itemId}`, {
 		method: "PUT",
 		body: JSON.stringify(item),
 	});
 }
 
-export function deleteRoadmapItem(
+export function deleteMilestone(
 	serviceName: string,
 	itemId: number,
 ): Promise<void> {
-	return apiFetch(`/service/${serviceName}/roadmap/${itemId}`, {
-		method: "DELETE",
-	});
-}
-
-// Launch Tasks
-export function fetchLaunchTasks(serviceName: string): Promise<LaunchTask[]> {
-	return apiFetch(`/service/${serviceName}/tasks`);
-}
-
-export function createLaunchTask(
-	serviceName: string,
-	task: Partial<LaunchTask>,
-): Promise<LaunchTask> {
-	return apiFetch(`/service/${serviceName}/tasks`, {
-		method: "POST",
-		body: JSON.stringify(task),
-	});
-}
-
-export function updateLaunchTask(
-	serviceName: string,
-	taskId: number,
-	task: Partial<LaunchTask>,
-): Promise<LaunchTask> {
-	return apiFetch(`/service/${serviceName}/tasks/${taskId}`, {
-		method: "PUT",
-		body: JSON.stringify(task),
-	});
-}
-
-export function deleteLaunchTask(
-	serviceName: string,
-	taskId: number,
-): Promise<void> {
-	return apiFetch(`/service/${serviceName}/tasks/${taskId}`, {
+	return apiFetch(`/service/${serviceName}/milestones/${itemId}`, {
 		method: "DELETE",
 	});
 }

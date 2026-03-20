@@ -1,26 +1,37 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { Check } from "lucide-react";
+import { Check, GripVertical, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
-import type { LaunchTask, RoadmapItem } from "#/lib/api";
+import type { Milestone } from "#/lib/api";
 import {
-	createLaunchTask,
 	createLink,
-	createRoadmapItem,
-	deleteLaunchTask,
+	createMilestone,
 	deleteLink,
+	deleteMilestone,
 	deleteProject,
-	deleteRoadmapItem,
-	fetchLaunchTasks,
 	fetchProject,
-	updateLaunchTask,
+	updateMilestone,
 	updateProject,
-	updateRoadmapItem,
 } from "#/lib/api";
 import { isLoggedIn } from "#/lib/auth";
+
+const milestoneStatuses = [
+	{ value: "planned", label: "Planned" },
+	{ value: "in_progress", label: "In Progress" },
+	{ value: "completed", label: "Completed" },
+	{ value: "cancelled", label: "Cancelled" },
+];
+
+const milestoneCategories = [
+	{ value: "feature", label: "Feature" },
+	{ value: "bugfix", label: "Bugfix" },
+	{ value: "infrastructure", label: "Infrastructure" },
+	{ value: "release", label: "Release" },
+	{ value: "other", label: "Other" },
+];
 
 export const Route = createFileRoute("/projects/$projectName")({
 	beforeLoad: () => {
@@ -30,27 +41,29 @@ export const Route = createFileRoute("/projects/$projectName")({
 	},
 	loader: async ({ params }) => {
 		const project = await fetchProject(params.projectName);
-		let tasks: LaunchTask[] = [];
-		try {
-			tasks = await fetchLaunchTasks(params.projectName);
-		} catch {
-			// tasks endpoint may not exist yet
-		}
-		return { project, tasks };
+		return { project };
 	},
 	component: EditProjectPage,
 });
 
 function EditProjectPage() {
-	const { project: initialProject, tasks: initialTasks } =
-		Route.useLoaderData();
+	const { project: initialProject } = Route.useLoaderData();
 	const navigate = useNavigate();
 	const [project, setProject] = useState(initialProject);
-	const [tasks, setTasks] = useState(initialTasks);
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [success, setSuccess] = useState<string | null>(null);
 	const params = Route.useParams();
+
+	const milestones = [...(project.milestones ?? [])].sort(
+		(a, b) => a.sortOrder - b.sortOrder || (a.id ?? 0) - (b.id ?? 0),
+	);
+	const activeMilestones = milestones.filter(
+		(item) => item.status !== "cancelled",
+	);
+	const completedMilestones = activeMilestones.filter(
+		(item) => item.status === "completed",
+	);
 
 	async function handleSave(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
@@ -74,7 +87,11 @@ function EditProjectPage() {
 					day: Number(form.get("launchDay")),
 				},
 			});
-			setProject(updated);
+			setProject((current) => ({
+				...updated,
+				links: current.links,
+				milestones: current.milestones,
+			}));
 			setSuccess("Project saved");
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Failed to save project");
@@ -95,7 +112,8 @@ function EditProjectPage() {
 
 	async function handleAddLink(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
-		const form = new FormData(e.currentTarget);
+		const formElement = e.currentTarget;
+		const form = new FormData(formElement);
 		try {
 			const link = await createLink(params.projectName, {
 				type: form.get("linkType") as string,
@@ -103,7 +121,7 @@ function EditProjectPage() {
 				label: form.get("linkLabel") as string,
 			});
 			setProject((p) => ({ ...p, links: [...(p.links ?? []), link] }));
-			e.currentTarget.reset();
+			formElement.reset();
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Failed to add link");
 		}
@@ -121,99 +139,94 @@ function EditProjectPage() {
 		}
 	}
 
-	async function handleAddRoadmapItem(e: React.FormEvent<HTMLFormElement>) {
+	async function handleAddMilestone(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
-		const form = new FormData(e.currentTarget);
+		const formElement = e.currentTarget;
+		const form = new FormData(formElement);
+		const status = (form.get("status") as string) || "planned";
+
 		try {
-			const item = await createRoadmapItem(params.projectName, {
-				name: form.get("itemName") as string,
-				targetDate: (form.get("itemTargetDate") as string) || undefined,
-				completed: false,
-				sortOrder: project.roadmap?.length ?? 0,
+			const item = await createMilestone(params.projectName, {
+				title: form.get("title") as string,
+				description: (form.get("description") as string) || "",
+				category: (form.get("category") as string) || "feature",
+				status,
+				targetDate: (form.get("targetDate") as string) || undefined,
+				completedDate:
+					status === "completed"
+						? (form.get("completedDate") as string) || undefined
+						: undefined,
+				sortOrder: milestones.length,
 			});
 			setProject((p) => ({
 				...p,
-				roadmap: [...(p.roadmap ?? []), item],
+				milestones: [...(p.milestones ?? []), item],
 			}));
-			e.currentTarget.reset();
+			formElement.reset();
 		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : "Failed to add roadmap item",
-			);
+			setError(err instanceof Error ? err.message : "Failed to add milestone");
 		}
 	}
 
-	async function handleToggleRoadmapItem(item: RoadmapItem) {
+	async function handleUpdateMilestone(item: Milestone) {
 		if (!item.id) return;
 		try {
-			const updated = await updateRoadmapItem(params.projectName, item.id, {
-				completed: !item.completed,
+			const updated = await updateMilestone(params.projectName, item.id, {
+				title: item.title,
+				description: item.description ?? "",
+				category: item.category,
+				status: item.status,
+				targetDate: item.targetDate,
+				completedDate:
+					item.status === "completed" ? item.completedDate : undefined,
+				sortOrder: item.sortOrder,
 			});
 			setProject((p) => ({
 				...p,
-				roadmap: p.roadmap?.map((r) => (r.id === item.id ? updated : r)),
+				milestones: p.milestones?.map((m) => (m.id === item.id ? updated : m)),
 			}));
+			setSuccess(`Saved "${updated.title}"`);
 		} catch (err) {
 			setError(
-				err instanceof Error ? err.message : "Failed to update roadmap item",
+				err instanceof Error ? err.message : "Failed to update milestone",
 			);
 		}
 	}
 
-	async function handleDeleteRoadmapItem(itemId: number) {
+	async function handleDeleteMilestone(itemId: number) {
 		try {
-			await deleteRoadmapItem(params.projectName, itemId);
+			await deleteMilestone(params.projectName, itemId);
 			setProject((p) => ({
 				...p,
-				roadmap: p.roadmap?.filter((r) => r.id !== itemId),
+				milestones: p.milestones?.filter((m) => m.id !== itemId),
 			}));
 		} catch (err) {
 			setError(
-				err instanceof Error ? err.message : "Failed to delete roadmap item",
+				err instanceof Error ? err.message : "Failed to delete milestone",
 			);
 		}
 	}
 
-	async function handleAddTask() {
-		try {
-			const task = await createLaunchTask(params.projectName, {
-				completed: false,
-			});
-			setTasks((t) => [...t, task]);
-		} catch (err) {
-			setError(err instanceof Error ? err.message : "Failed to add task");
-		}
-	}
-
-	async function handleToggleTask(task: LaunchTask) {
-		if (!task.id) return;
-		try {
-			const updated = await updateLaunchTask(params.projectName, task.id, {
-				completed: !task.completed,
-			});
-			setTasks((t) => t.map((tt) => (tt.id === task.id ? updated : tt)));
-		} catch (err) {
-			setError(err instanceof Error ? err.message : "Failed to update task");
-		}
-	}
-
-	async function handleDeleteTask(taskId: number) {
-		try {
-			await deleteLaunchTask(params.projectName, taskId);
-			setTasks((t) => t.filter((tt) => tt.id !== taskId));
-		} catch (err) {
-			setError(err instanceof Error ? err.message : "Failed to delete task");
-		}
+	function updateMilestoneDraft(
+		itemId: number,
+		updater: (current: Milestone) => Milestone,
+	) {
+		setProject((current) => ({
+			...current,
+			milestones: current.milestones?.map((item) =>
+				item.id === itemId ? updater(item) : item,
+			),
+		}));
 	}
 
 	function CheckIcon() {
-		return <Check className="w-3 h-3 text-white" aria-label="Completed" />;
+		return <Check className="h-3 w-3 text-white" aria-label="Completed" />;
 	}
 
 	return (
 		<div className="py-8">
-			<div className="page-wrap max-w-3xl">
-				<div className="flex items-center justify-between mb-6">
+			<div className="page-wrap max-w-5xl">
+				<div className="mb-6 flex items-center justify-between">
 					<h1 className="text-2xl font-bold">Edit: {project.name}</h1>
 					<Button variant="destructive" size="sm" onClick={handleDelete}>
 						Delete Project
@@ -231,9 +244,8 @@ function EditProjectPage() {
 					</div>
 				)}
 
-				{/* Project Details */}
 				<section className="mb-8 rounded-xl border border-(--color-border) bg-(--color-surface) p-6">
-					<h2 className="text-lg font-semibold mb-4">Details</h2>
+					<h2 className="mb-4 text-lg font-semibold">Details</h2>
 					<form onSubmit={handleSave} className="space-y-4">
 						<div className="grid grid-cols-2 gap-4">
 							<div className="space-y-2">
@@ -321,23 +333,22 @@ function EditProjectPage() {
 					</form>
 				</section>
 
-				{/* Links */}
 				<section className="mb-8 rounded-xl border border-(--color-border) bg-(--color-surface) p-6">
-					<h2 className="text-lg font-semibold mb-4">Links</h2>
+					<h2 className="mb-4 text-lg font-semibold">Links</h2>
 					{project.links && project.links.length > 0 && (
-						<div className="space-y-2 mb-4">
+						<div className="mb-4 space-y-2">
 							{project.links.map((link) => (
 								<div
 									key={link.id ?? link.url}
 									className="flex items-center justify-between rounded-lg border border-(--color-border) p-3"
 								>
 									<div>
-										<span className="text-xs font-medium bg-(--color-surface-alt) px-2 py-0.5 rounded mr-2">
+										<span className="mr-2 rounded bg-(--color-surface-alt) px-2 py-0.5 text-xs font-medium">
 											{link.type}
 										</span>
 										<span className="text-sm">{link.url}</span>
 										{link.label && (
-											<span className="text-sm text-(--color-text-muted) ml-2">
+											<span className="ml-2 text-sm text-(--color-text-muted)">
 												({link.label})
 											</span>
 										)}
@@ -347,7 +358,7 @@ function EditProjectPage() {
 											variant="ghost"
 											size="sm"
 											className="text-(--color-danger)"
-											onClick={() => handleDeleteLink(link.id as number)}
+											onClick={() => handleDeleteLink(link.id)}
 										>
 											Remove
 										</Button>
@@ -373,123 +384,218 @@ function EditProjectPage() {
 					</form>
 				</section>
 
-				{/* Roadmap */}
-				<section className="mb-8 rounded-xl border border-(--color-border) bg-(--color-surface) p-6">
-					<h2 className="text-lg font-semibold mb-4">Roadmap</h2>
-					{project.roadmap && project.roadmap.length > 0 && (
-						<div className="space-y-2 mb-4">
-							{project.roadmap.map((item) => (
-								<div
-									key={item.id ?? item.name}
-									className="flex items-center gap-3 rounded-lg border border-(--color-border) p-3"
-								>
-									<button
-										type="button"
-										onClick={() => handleToggleRoadmapItem(item)}
-										className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
-											item.completed
+				<section className="rounded-xl border border-(--color-border) bg-(--color-surface) p-6">
+					<div className="mb-4 flex items-center justify-between">
+						<div>
+							<h2 className="text-lg font-semibold">Milestones</h2>
+							<p className="text-sm text-(--color-text-muted)">
+								{completedMilestones.length}/{activeMilestones.length} active
+								milestones completed
+							</p>
+						</div>
+					</div>
+
+					<form
+						onSubmit={handleAddMilestone}
+						className="mb-6 grid gap-3 rounded-xl border border-dashed border-(--color-border) bg-(--color-surface-alt) p-4 md:grid-cols-6"
+					>
+						<div className="md:col-span-2">
+							<Input name="title" required placeholder="Milestone title" />
+						</div>
+						<div className="md:col-span-1">
+							<select
+								name="category"
+								defaultValue="feature"
+								className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
+							>
+								{milestoneCategories.map((category) => (
+									<option key={category.value} value={category.value}>
+										{category.label}
+									</option>
+								))}
+							</select>
+						</div>
+						<div className="md:col-span-1">
+							<select
+								name="status"
+								defaultValue="planned"
+								className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
+							>
+								{milestoneStatuses.map((status) => (
+									<option key={status.value} value={status.value}>
+										{status.label}
+									</option>
+								))}
+							</select>
+						</div>
+						<div className="md:col-span-1">
+							<Input name="targetDate" type="date" />
+						</div>
+						<div className="md:col-span-1">
+							<Input name="completedDate" type="date" />
+						</div>
+						<div className="md:col-span-5">
+							<Textarea
+								name="description"
+								rows={2}
+								placeholder="Context, release notes, or delivery detail"
+							/>
+						</div>
+						<div className="md:col-span-1 flex items-end">
+							<Button type="submit" className="w-full">
+								Add Milestone
+							</Button>
+						</div>
+					</form>
+
+					<div className="space-y-3">
+						{milestones.map((item, index) => (
+							<div
+								key={item.id ?? `${item.title}-${index}`}
+								className="rounded-xl border border-(--color-border) p-4"
+							>
+								<div className="mb-3 flex items-start gap-3">
+									<div className="pt-2 text-(--color-text-muted)">
+										<GripVertical className="h-4 w-4" />
+									</div>
+									<div
+										className={`mt-1 flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+											item.status === "completed"
 												? "border-brand-500 bg-brand-500"
 												: "border-(--color-border)"
 										}`}
 									>
-										{item.completed && <CheckIcon />}
-									</button>
+										{item.status === "completed" && <CheckIcon />}
+									</div>
 									<div className="flex-1">
-										<span
-											className={
-												item.completed
-													? "line-through text-(--color-text-muted)"
-													: ""
-											}
+										<div className="grid gap-3 md:grid-cols-6">
+											<div className="md:col-span-2">
+												<Label className="mb-2 block text-xs">Title</Label>
+												<Input
+													value={item.title}
+													onChange={(e) =>
+														updateMilestoneDraft(item.id ?? -1, (current) => ({
+															...current,
+															title: e.target.value,
+														}))
+													}
+												/>
+											</div>
+											<div>
+												<Label className="mb-2 block text-xs">Category</Label>
+												<select
+													value={item.category}
+													onChange={(e) =>
+														updateMilestoneDraft(item.id ?? -1, (current) => ({
+															...current,
+															category: e.target.value,
+														}))
+													}
+													className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
+												>
+													{milestoneCategories.map((category) => (
+														<option key={category.value} value={category.value}>
+															{category.label}
+														</option>
+													))}
+												</select>
+											</div>
+											<div>
+												<Label className="mb-2 block text-xs">Status</Label>
+												<select
+													value={item.status}
+													onChange={(e) =>
+														updateMilestoneDraft(item.id ?? -1, (current) => ({
+															...current,
+															status: e.target.value,
+															completedDate:
+																e.target.value === "completed"
+																	? current.completedDate
+																	: undefined,
+														}))
+													}
+													className="w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
+												>
+													{milestoneStatuses.map((status) => (
+														<option key={status.value} value={status.value}>
+															{status.label}
+														</option>
+													))}
+												</select>
+											</div>
+											<div>
+												<Label className="mb-2 block text-xs">Target</Label>
+												<Input
+													type="date"
+													value={item.targetDate ?? ""}
+													onChange={(e) =>
+														updateMilestoneDraft(item.id ?? -1, (current) => ({
+															...current,
+															targetDate: e.target.value || undefined,
+														}))
+													}
+												/>
+											</div>
+											<div>
+												<Label className="mb-2 block text-xs">Completed</Label>
+												<Input
+													type="date"
+													value={item.completedDate ?? ""}
+													onChange={(e) =>
+														updateMilestoneDraft(item.id ?? -1, (current) => ({
+															...current,
+															completedDate: e.target.value || undefined,
+														}))
+													}
+												/>
+											</div>
+										</div>
+										<div className="mt-3">
+											<Label className="mb-2 block text-xs">Description</Label>
+											<Textarea
+												rows={3}
+												value={item.description ?? ""}
+												onChange={(e) =>
+													updateMilestoneDraft(item.id ?? -1, (current) => ({
+														...current,
+														description: e.target.value,
+													}))
+												}
+											/>
+										</div>
+									</div>
+								</div>
+								<div className="flex items-center justify-between">
+									<p className="text-xs text-(--color-text-muted)">
+										Sort order: {item.sortOrder}
+									</p>
+									<div className="flex gap-2">
+										<Button
+											size="sm"
+											onClick={() => handleUpdateMilestone(item)}
 										>
-											{item.name}
-										</span>
-										{item.targetDate && (
-											<span className="text-xs text-(--color-text-muted) ml-2">
-												Target: {item.targetDate}
-											</span>
+											Save
+										</Button>
+										{item.id && (
+											<Button
+												variant="ghost"
+												size="sm"
+												className="text-(--color-danger)"
+												onClick={() => handleDeleteMilestone(item.id)}
+											>
+												<Trash2 className="mr-1 h-4 w-4" />
+												Remove
+											</Button>
 										)}
 									</div>
-									{item.id && (
-										<Button
-											variant="ghost"
-											size="sm"
-											className="text-(--color-danger)"
-											onClick={() => handleDeleteRoadmapItem(item.id as number)}
-										>
-											Remove
-										</Button>
-									)}
 								</div>
-							))}
-						</div>
-					)}
-					<form onSubmit={handleAddRoadmapItem} className="flex gap-2">
-						<Input
-							name="itemName"
-							required
-							placeholder="Feature name"
-							className="flex-1"
-						/>
-						<Input name="itemTargetDate" type="date" />
-						<Button type="submit">Add</Button>
-					</form>
-				</section>
-
-				{/* Launch Tasks */}
-				<section className="rounded-xl border border-(--color-border) bg-(--color-surface) p-6">
-					<div className="flex items-center justify-between mb-4">
-						<h2 className="text-lg font-semibold">
-							Launch Tasks
-							<span className="text-sm font-normal text-(--color-text-muted) ml-2">
-								({tasks.filter((t) => t.completed).length}/{tasks.length}{" "}
-								complete)
-							</span>
-						</h2>
-						<Button size="sm" onClick={handleAddTask}>
-							Add Task
-						</Button>
+							</div>
+						))}
 					</div>
-					{tasks.length > 0 && (
-						<div className="space-y-2">
-							{tasks.map((task) => (
-								<div
-									key={task.id}
-									className="flex items-center gap-3 rounded-lg border border-(--color-border) p-3"
-								>
-									<button
-										type="button"
-										onClick={() => handleToggleTask(task)}
-										className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
-											task.completed
-												? "border-brand-500 bg-brand-500"
-												: "border-(--color-border)"
-										}`}
-									>
-										{task.completed && <CheckIcon />}
-									</button>
-									<span
-										className={`flex-1 text-sm ${task.completed ? "line-through text-(--color-text-muted)" : ""}`}
-									>
-										Task #{task.id}
-									</span>
-									{task.id && (
-										<Button
-											variant="ghost"
-											size="sm"
-											className="text-(--color-danger)"
-											onClick={() => handleDeleteTask(task.id as number)}
-										>
-											Remove
-										</Button>
-									)}
-								</div>
-							))}
-						</div>
-					)}
-					{tasks.length === 0 && (
+
+					{milestones.length === 0 && (
 						<p className="text-sm text-(--color-text-muted)">
-							No launch tasks yet.
+							No milestones yet.
 						</p>
 					)}
 				</section>
